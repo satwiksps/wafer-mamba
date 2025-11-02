@@ -2,7 +2,7 @@
 
 This repository benchmarks a **MambaVision backbone** with two interchangeable heads on **multilabel wafer-defect classification**:  
 a **classical MLP head** and a **4-qubit PennyLane variational head** integrated as a `TorchLayer` for **end-to-end training and evaluation** under identical splits and hyperparameters.
-
+>Work in Progress: Ongoing improvements target both accuracy and reliability, updated metrics and plots will be released in subsequent commits.
 ---
 
 ## 📂 Datasets and Splits
@@ -123,11 +123,9 @@ All results are saved to `bench_reports/bench_{MODEL_VARIANT}.json`.
 #### Ongoing improvements target both accuracy and reliability through:
 
 - Circuit ablations (varying qubits and entangling layers)  
-- Alternative angle embeddings  
-- Threshold selection variants 
-- Cost-sensitive evaluation  
+- Alternative angle embeddings   
 - Regularization and optimizer schedule tuning  
-- Matched-budget **LoRA** on the backbone  
+- Tune per‑class thresholds and calibration.​
 
 Updated metrics and plots will be released in subsequent commits.
 
