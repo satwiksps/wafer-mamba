@@ -1,4 +1,28 @@
-# ARCHITECTURE
+# Wafer-Mamba
+
+This repository contains the official implementation and experimental artifacts for:
+
+**"Hybrid Quantum-Enhanced MambaVision with LoRA Fine-Tuning for Multi-Label Wafer Defect Classification"**
+
+> **Accepted Paper** &mdash; [EFMxDM Workshop](https://efficient-fmxdm.github.io/EFMxDM/) at [PAKDD 2026](https://pakdd2026.org/), Hong Kong
+
+## Abstract
+
+We propose a hybrid quantum-classical architecture that augments [MambaVision-T](https://huggingface.co/nvidia/MambaVision-T-1K) with a **Quantum Context Adapter (QCA)** and **LoRA** fine-tuning for multi-label semiconductor wafer defect classification. The QCA injects a lightweight PennyLane-based variational quantum circuit between the backbone stages, providing a quantum-enhanced channel re-calibration signal whose influence is governed by a learnable gate scalar. Combined with Focal Loss and a cosine-annealed training schedule, the model achieves **97.84% subset accuracy** and **0.9947 Micro-F1** on the MixedType Wafer Defect dataset — outperforming classical MambaVision, ResNet-50 and ViT baselines while adding only **~5.8K** quantum-adapter parameters.
+
+
+## Architecture
+
+| Component | Description |
+|---|---|
+| **Backbone** | MambaVision-Tiny (`nvidia/MambaVision-T-1K`) — hybrid SSM + attention |
+| **Quantum Context Adapter** | 4-qubit PennyLane circuit (AngleEmbedding → StronglyEntanglingLayers), inserted after Level 2 via forward hook |
+| **LoRA** | Rank-64, α=128, applied to `in_proj`, `out_proj`, `x_proj`, `dt_proj`, `fc1`, `fc2` |
+| **Classification Head** | LayerNorm → Linear (640 → 8) |
+| **Loss** | Focal Loss (γ=2) |
+
+<details>
+  <summary>Click to view full architecture</summary>
 
 | ID | Layer | Type | Output | Status |
 | :--- | :--- | :--- | :--- | :--- |
@@ -459,3 +483,115 @@
 | 454 | base_model.model.model.norm | BatchNorm2d | [1, 640, 12, 12] | 🔒 Frozen |
 | 455 | base_model.model.model.avgpool | AdaptiveAvgPool2d | [1, 640, 1, 1] | 🔒 Frozen |
 | 456 | base_model.model.model.head | Linear | [1, 1000] | 🔒 Frozen |
+
+</details>
+
+## Repository Structure
+
+```
+wafer-mamba/
+├── notebooks/
+│   ├── training/                       # Kaggle training notebooks
+│   │   ├── wafer-mamba-hybrid.ipynb    # Hybrid Quantum-MambaVision (proposed)
+│   │   ├── wafer-mamba-classical.ipynb # Classical MambaVision + LoRA
+│   │   ├── wafer-resnet.ipynb          # ResNet-50 + LoRA baseline
+│   │   └── wafer-vit.ipynb             # ViT-Small baseline
+│   └── analysis/
+│       ├── analysis_for_paper.ipynb    # Figures & tables for the paper
+│       ├── detailed_analysis.ipynb     # Extended analysis
+│       └── requirements.txt            # Dependencies for analysis
+├── models/                             # Trained model checkpoints (.pth)
+│   ├── hybrid-mamba/
+│   ├── classical-mamba/
+│   ├── resnet/
+│   └── vit/
+├── results/                            # Per-epoch predictions & logs (.json)
+│   ├── hybrid-mamba/
+│   ├── classical-mamba/
+│   ├── resnet/
+│   └── vit/
+├── figures/                            # Publication-ready figures (PDF)
+│   ├── overal_architecture_diagram.pdf
+│   ├── quantum_adapter_diagram.pdf
+│   ├── lora_diagram.pdf
+│   ├── training_dynamics_*.pdf
+│   ├── defect_distribution.pdf
+│   └── ... (18 figures total)
+└── data/
+    └── Description.pdf                 # Dataset description
+```
+
+## Results
+
+### Model Comparison (Test Set)
+
+| Model | Macro-F1 | Micro-F1 | Subset Acc | Trainable Params |
+|---|:---:|:---:|:---:|:---:|
+| ResNet-50 + LoRA | 0.9918 | 0.9904 | 96.11% | 5.10M |
+| ViT-Small + LoRA | 0.9836 | 0.9958 | 98.34% | 1.18M |
+| Classical MambaVision + LoRA | 0.9952 | 0.9948 | 97.87% | 4.12M |
+| **Hybrid Quantum-MambaVision (ours)** | **0.9942** | **0.9947** | **97.84%** | **4.12M + ~5.8K** |
+
+> The hybrid model matches competitive performance while incorporating quantum-enhanced feature modulation with minimal parameter overhead.
+
+## Dataset
+
+**MixedType Wafer Defect Datasets** — available on [Kaggle](https://www.kaggle.com/datasets/co1d7era/mixedtype-wafer-defect-datasets).
+
+- Format: `.npz` (wafer map images + multi-hot labels)
+- 8 defect classes, multi-label
+- Split: 70% train / 10% validation / 20% test (stratified)
+- Input resolution: 384 × 384 (grayscale → 3-channel)
+
+## Getting Started
+
+### Training (Kaggle — NVIDIA T4 GPU)
+
+All four models were trained on **Kaggle** notebooks with a T4 GPU. Each notebook's first cell installs the required dependencies:
+
+```bash
+pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1
+pip install causal-conv1d==1.4.0 --no-build-isolation
+pip install mamba-ssm==2.2.4 --no-build-isolation
+pip install mambavision timm pillow
+pip install "transformers>=4.43" "accelerate>=0.33" "datasets>=2.19" "evaluate>=0.4" "peft>=0.12.0" "scikit-learn>=1.3" "bitsandbytes>=0.43.0"
+pip install pennylane pennylane-lightning[gpu]
+```
+
+To reproduce training:
+1. Upload the [MixedType Wafer Defect Dataset](https://www.kaggle.com/datasets/co1d7era/mixedtype-wafer-defect-datasets) as a Kaggle dataset
+2. Open the desired notebook from `notebooks/training/` in a Kaggle notebook environment with GPU T4 × 2 accelerator
+3. Run all cells — each notebook is self-contained
+
+### Training Configuration
+
+| Parameter | Value |
+|---|---|
+| Epochs | 15 |
+| Batch size | 64 × 2 (gradient accumulation) |
+| Optimizer | AdamW (fused) |
+| Learning rate | 6e-4 (Mamba, ViT) / 5e-5 (ResNet) |
+| Scheduler | Cosine with 10% warmup |
+| Early stopping | Patience = 3 (on Macro-F1) |
+| Precision | FP16 |
+| Seed | 42 |
+
+### Analysis (Local)
+
+For running the analysis notebooks locally:
+
+```bash
+# Create virtual environment (Python 3.11)
+python -m venv .venv
+
+# Activate
+# Windows:
+.venv\Scripts\activate
+# Linux/macOS:
+source .venv/bin/activate
+
+# Install analysis dependencies
+pip install -r notebooks/analysis/requirements.txt
+```
+
+The analysis notebooks load pre-computed results from `results/` and generate all figures in `figures/`.
