@@ -2,7 +2,7 @@
 
 This repository contains the official implementation and experimental artifacts for:
 
-**"Hybrid Quantum-Enhanced MambaVision with LoRA Fine-Tuning for Multi-Label Wafer Defect Classification"**
+**"Hybrid Quantum-MambaVision: A Quantum-enhanced State Space Model for Calibrated Mixed-type Wafer Defect Detection"**
 
 > **Accepted Paper** &mdash; [EFMxDM Workshop](https://efficient-fmxdm.github.io/EFMxDM/) at [PAKDD 2026](https://pakdd2026.org/), Hong Kong
 
