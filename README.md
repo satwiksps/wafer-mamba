@@ -521,19 +521,6 @@ wafer-mamba/
     └── Description.pdf                 # Dataset description
 ```
 
-## Results
-
-### Model Comparison (Test Set)
-
-| Model | Macro-F1 | Micro-F1 | Subset Acc | Trainable Params |
-|---|:---:|:---:|:---:|:---:|
-| ResNet-50 + LoRA | 0.9918 | 0.9904 | 96.11% | 5.10M |
-| ViT-Small + LoRA | 0.9836 | 0.9958 | 98.34% | 1.18M |
-| Classical MambaVision + LoRA | 0.9952 | 0.9948 | 97.87% | 4.12M |
-| **Hybrid Quantum-MambaVision (ours)** | **0.9942** | **0.9947** | **97.84%** | **4.12M + ~5.8K** |
-
-> The hybrid model matches competitive performance while incorporating quantum-enhanced feature modulation with minimal parameter overhead.
-
 ## Dataset
 
 **MixedType Wafer Defect Datasets** — available on [Kaggle](https://www.kaggle.com/datasets/co1d7era/mixedtype-wafer-defect-datasets).
